@@ -1,5 +1,9 @@
 #!/bin/bash
 
+export MY_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+export MY_PARENT=$(dirname "${MY_PATH}")
+export CONTAINER_NAME="${MY_PARENT}"
+
 export xUID=$(id -u)
 export xGID=$(id -g)
 
@@ -15,20 +19,23 @@ esac
 if [ "$machine" == "Windows" ] ; then
   WINPTY="winpty"
 else
+  if [ $(id -u) -eq "0" ]; then
+    echo "Doesn't work when launhed as root."
+    exit 1
+  fi
+
   SUDO="sudo -EHu app"
+  if ! type docker-compose >/dev/null 2>&1; then
+    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+  fi
 fi
 
-if ! grep -q azalist ~/.bash_aliases 2>/dev/null; then
-  cat >> ~/.bash_aliases <<EOF
-alias azalist='az account list --query [].name'
-alias azaset='az account set -s'
-alias azashow='az account show --query name'
-EOF
-fi
-
+pushd "$MY_PATH"
 if [ "$1" == "build" ]; then
-  docker-compose build
-  exec $WINPTY docker-compose run --rm ansible
+  docker-compose $@ && \
+  exec $WINPTY docker-compose run --rm main
 else
-  exec $WINPTY docker-compose run --rm ansible
+  exec $WINPTY docker-compose run --rm main
 fi
+popd

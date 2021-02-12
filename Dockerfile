@@ -1,7 +1,7 @@
-FROM ubuntu:19.04
+FROM ubuntu:20.04
 
-RUN apt-get -y update
-RUN apt-get -y install \
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y update
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install \
   sudo \
   curl \
   nano \
@@ -12,35 +12,45 @@ RUN apt-get -y install \
   openssh-client \
   software-properties-common \
   apt-transport-https \
-  python-pip \
+  python3-pip \
   jq \
   cowsay \
   locales \
-  python-jmespath \
-  python-requests \
-  python-pip \
+  python3-jmespath \
+  python3-requests \
   net-tools \
   iputils-ping \
   lsb-release \
   gnupg \
+  dnsutils \
+  whois \
+  ipcalc \
+  sshpass \
   && echo "alias mc='mc -b'" > /etc/profile.d/00-aliases.sh \
   && sed -i '/%sudo/d' /etc/sudoers \
-  && echo "%sudo   ALL=(ALL:ALL)  NOPASSWD: ALL" >> /etc/sudoers
-RUN curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc.gpg > /dev/null \
-  && curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add - \
-  && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/azure-cli.list \
+  && echo "%sudo   ALL=(ALL:ALL)  NOPASSWD: ALL" >> /etc/sudoers \
+  && apt install -y --no-install-recommends python-netaddr
+RUN curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add - \
   && echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list \
-  && curl -q https://tjend.github.io/repo_terraform/repo_terraform.key | sudo apt-key add - \
-  && echo 'deb [arch=amd64] https://tjend.github.io/repo_terraform stable main' | sudo tee /etc/apt/sources.list.d/terraform.list \
-  && apt-add-repository -y ppa:ansible/ansible \
-  && apt-get -y install azure-cli kubectl ansible git terraform
-RUN pip install --upgrade cryptography \
-#  && pip install --upgrade azure \
-  && pip install --upgrade azure-cli \
-  && python -m easy_install --upgrade pyOpenSSL \
-  && curl https://raw.githubusercontent.com/helm/helm/master/scripts/get | bash
-
-COPY ansible.cfg /etc/ansible/ansible.cfg
+  && curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add - \
+  && apt-add-repository -y "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+  && DEBIAN_FRONTEND=noninteractive apt update \
+  && DEBIAN_FRONTEND=noninteractive apt -y install kubectl git terraform
+RUN pip3 install ansible
+RUN pip3 install --upgrade cryptography \
+  && pip3 install --upgrade azure-cli \
+  && python3 -m easy_install --upgrade pyOpenSSL \
+  && curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+RUN PACKER_VERSION=$(curl -s https://releases.hashicorp.com/packer/ | grep packer_ | cut -d / -f 3 | head -n 1) \
+  && curl -O https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip \
+  && unzip -d /usr/local/bin packer_${PACKER_VERSION}_linux_amd64.zip
+RUN TERRAGRUNT_VERSION=$(curl --silent "https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")') \
+  && curl -L -o /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/${TERRAGRUNT_VERSION}/terragrunt_linux_amd64 \
+  && chmod +x /usr/local/bin/terragrunt
+RUN curl -L -o /tmp/azcopy.tgz -s https://aka.ms/downloadazcopy-v10-linux \
+  && tar -zxf /tmp/azcopy.tgz -C /tmp \
+  && mv /tmp/azcopy_linux_amd64_*/azcopy /usr/local/bin/ \
+  && chmod 755 /usr/local/bin/azcopy
 
 ARG USERNAME
 ARG UID
@@ -49,10 +59,8 @@ RUN sed -i '/history-search-backward/s/^# //g' /etc/inputrc \
   && sed -i '/history-search-forward/s/^# //g' /etc/inputrc \
   && groupadd -g $GID $USERNAME \
   && useradd -d /home/$USERNAME -m -s /bin/bash -g $GID -u $UID $USERNAME \
-  && usermod -aG sudo $USERNAME \
-  && chmod 666 /etc/ansible/ansible.cfg
-
+  && usermod -aG sudo $USERNAME
 
 USER $USERNAME
 WORKDIR /home/$USERNAME
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["/bin/sh","-c","cd \"$WORKDIR\"; exec /bin/bash"]

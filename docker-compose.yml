@@ -1,16 +1,19 @@
 version: '2.1'
 services:
-  ansible:
+  main:
     environment:
       USERNAME: "$USER"
       SSH_AUTH_SOCK: /ssh-agent
+      PATH: "$MY_PATH/bin:$MY_PATH/../bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      WORKDIR: "$MY_PATH/../"
     build:
       context: .
       args:
         USERNAME: "$USER"
-        UID: "$xUID"
-        GID: "$xGID"
+        UID: "${xUID:?run only with a ./start.sh. because variables are defined there.}"
+        GID: "${xGID:?run only with a ./start.sh. because variables are defined there.}"
     volumes:
     - "~:/home/$USER"
     - "$SSH_AUTH_SOCK:/ssh-agent"
     - "/etc/hosts:/etc/hosts"
+    container_name: "${CONTAINER_NAME:?run only with a ./start.sh. because variables are defined there.}"
