@@ -35,7 +35,7 @@ Run this script to jump inside: `./workspace/start.sh`
 
 In case the Dockerfile were updated use the command: `./workspace/start.sh build`
 
-In some cases you need to use `./workspace/start.sh build --no-cahce` if you didn't update for a long time and apt cache is outdated and you get some 404 while downloading packages.
+Use `./workspace/start.sh build --no-cahce` if you get some 404 while downloading packages and failed build.
 
 #### SSH
 
