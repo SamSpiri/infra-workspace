@@ -51,6 +51,9 @@ RUN curl -L -o /tmp/azcopy.tgz -s https://aka.ms/downloadazcopy-v10-linux \
   && tar -zxf /tmp/azcopy.tgz -C /tmp \
   && mv /tmp/azcopy_linux_amd64_*/azcopy /usr/local/bin/ \
   && chmod 755 /usr/local/bin/azcopy
+RUN DEBIAN_FRONTEND=noninteractive apt -y install dbus-x11 libsecret-tools
+
+
 
 ARG USERNAME
 ARG UID

@@ -6,6 +6,8 @@ services:
       SSH_AUTH_SOCK: /ssh-agent
       PATH: "$MY_PATH/bin:$MY_PATH/../bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
       WORKDIR: "$MY_PATH/../"
+      DISPLAY: $DISPLAY
+      DBUS_SESSION_BUS_ADDRESS: unix:path=/run/user/1000/bus
     build:
       context: .
       args:
@@ -16,4 +18,8 @@ services:
     - "~:/home/$USER"
     - "$SSH_AUTH_SOCK:/ssh-agent"
     - "/etc/hosts:/etc/hosts"
+    - /tmp/.X11-unix:/tmp/.X11-unix
+    - /run/user/1000:/run/user/1000
+    security_opt:
+      - apparmor=docker-dbus
     container_name: "${CONTAINER_NAME:?run only with a ./start.sh. because variables are defined there.}"
